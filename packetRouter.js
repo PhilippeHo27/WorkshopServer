@@ -3,6 +3,7 @@
 
 const PacketType = require('./packetTypes');
 const { handleChatPacket } = require('./chatHandler');
+const { handlePositionPacket } = require('./positionHandler')
 const {
     handleRoomCreatePacket,
     handleRoomJoinPacket,
