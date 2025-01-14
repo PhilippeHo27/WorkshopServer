@@ -34,6 +34,9 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
         case PacketType.CHAT:
             handleChatPacket(clientId, decoded, message, state, log);
             break;
+        case PacketType.POSITION:
+            handlePositionPacket(clientId, decoded, message, state, log);
+            break;
         case PacketType.ROOM_CREATE:
             handleRoomCreatePacket(clientId, decoded, message, state, log);
             break;
