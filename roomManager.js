@@ -54,6 +54,20 @@ function leaveRoom(roomId, clientId) {
 }
 
 /**
+ * Check if a client is in any room
+ * @param {number} clientId
+ * @returns {boolean}
+ */
+function isClientInAnyRoom(clientId) {
+    for (const [roomId, room] of rooms) {
+        if (room.clients.has(clientId)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Destroy a room manually (e.g., if requested by a client).
  * @param {string|number} roomId
  */
@@ -85,6 +99,7 @@ function broadcastToRoom(roomId, senderId, binaryMessage, clientMap) {
 module.exports = {
     createRoom,
     joinRoom,
+    isClientInAnyRoom,
     leaveRoom,
     destroyRoom,
     broadcastToRoom

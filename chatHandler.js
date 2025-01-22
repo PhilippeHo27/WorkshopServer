@@ -3,7 +3,7 @@
 // or to a room if desired. For now, we do a global broadcast unless the packet includes a roomId.
 
 const PacketType = require('./packetTypes');
-const { broadcastToRoom } = require('./roomManager');
+const { broadcastToRoom, isClientInAnyRoom  } = require('./roomManager');
 
 /**
  * Handle an incoming chat packet. Typically structure:
@@ -38,7 +38,10 @@ function handleChatPacket(clientId, decoded, originalMessage, state, log) {
  */
 function fastBroadcast(senderId, binaryMessage, state) {
     state.clients.forEach((socket, id) => {
-        if (id !== senderId && socket.readyState === 1) {
+        // Only broadcast to clients NOT in any room
+        if (id !== senderId && 
+            socket.readyState === 1 && 
+            !isClientInAnyRoom(id)) {
             socket.send(binaryMessage);
         }
     });

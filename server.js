@@ -102,7 +102,7 @@ function sendTimeSync() {
     STATE.clients.forEach((client, id) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(encodedPacket);
-            log('DEBUG', 'Sent TIME_SYNC packet', { clientId: id, serverTime: currentTime });
+            //log('DEBUG', 'Sent TIME_SYNC packet', { clientId: id, serverTime: currentTime });
         }
     });
 }
