@@ -11,5 +11,6 @@ module.exports = {
     ROOM_JOIN: 5,
     ROOM_LEAVE: 6,
     ROOM_DESTROY: 7,
-    SERVER_RESPONSE: 8
+    SERVER_RESPONSE: 8,
+    USER_INFO: 9
 };

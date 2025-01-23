@@ -1,6 +1,5 @@
 // positionHandler.js
 const PacketType = require('./packetTypes');
-const { broadcastToRoom } = require('./roomManager');
 
 function handlePositionPacket(clientId, decoded, originalMessage, state, log) {
     const [senderId, packetType, objectId, posX, posY, posZ] = decoded;
@@ -13,13 +12,13 @@ function handlePositionPacket(clientId, decoded, originalMessage, state, log) {
         roomId
     });
 
-    // If there's a roomId, broadcast only to that room
-    if (roomId !== undefined && roomId !== null) {
-        broadcastToRoom(roomId, clientId, originalMessage, state.clients);
-    } else {
-        // Otherwise, do a global broadcast (like chatHandler’s fastBroadcast)
-        fastBroadcast(clientId, originalMessage, state);
-    }
+    // // If there's a roomId, broadcast only to that room
+    // if (roomId !== undefined && roomId !== null) {
+    //     broadcastToRoom(roomId, clientId, originalMessage, state.clients);
+    // } else {
+    //     // Otherwise, do a global broadcast (like chatHandler’s fastBroadcast)
+    //     fastBroadcast(clientId, originalMessage, state);
+    // }
 
     // Optional: update stats or track positions
     updateClientStats(clientId, PacketType.POSITION, state);

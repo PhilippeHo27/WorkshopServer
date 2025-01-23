@@ -2,8 +2,6 @@ const WebSocket = require('ws');
 const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
 
-
-const rooms = new Map();
 const ROOM_CONFIG = {
     MAX_CLIENTS: 8,
     MIN_CLIENTS: 2,
@@ -15,14 +13,11 @@ function handleRoomCreatePacket(clientId, roomId, state, log)
     log('INFO', 'Room create request', { clientId, roomId });
 
     let success = false;     
-    if (!rooms.has(roomId)) 
-    {
-        rooms.set(roomId, { clients: new Set() });
+    if (!state.userRooms.has(roomId)) {
+        state.userRooms.set(roomId, { clients: new Set() });
         success = true;
         log('INFO', 'Room created', { roomId });
-    } 
-    else 
-    {
+    } else {
         log('WARN', 'Room already exists', { roomId });
     }
     
@@ -41,7 +36,7 @@ function handleRoomJoinPacket(clientId, roomId, state, log)
 
     let success = false;
     
-    const room = rooms.get(roomId);
+    const room = state.userRooms.get(roomId);
     if (!room) 
     {
         log('WARN', 'Failed to join room', {
@@ -78,7 +73,7 @@ function handleRoomLeavePacket(clientId, roomId, state, log) {
 
     let success = false;
     
-    const room = rooms.get(roomId);
+    const room = state.userRooms.get(roomId);
     if (!room) {
         log('WARN', 'Failed to leave room', {
             clientId,
@@ -92,7 +87,7 @@ function handleRoomLeavePacket(clientId, roomId, state, log) {
 
         // Clean up empty room
         if (room.clients.size === 0) {
-            rooms.delete(roomId);
+            state.userRooms.delete(roomId);
             log('INFO', 'Empty room removed', { roomId });
         }
     }

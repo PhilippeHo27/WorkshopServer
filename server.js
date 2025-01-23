@@ -4,6 +4,8 @@ const msgpack = require('@msgpack/msgpack');
 const { routePacket } = require('./packetRouter');
 const PacketType = require('./packetTypes');
 const { handleRoomLeavePacket } = require('./roomHandlers');
+const { updateUserNamesToClients } = require('./userInfoHandler');
+
 
 // 1) Server Configuration
 const SERVER_CONFIG = {
@@ -25,6 +27,7 @@ const LOG_LEVELS = {
 // 3) Server State
 const ACTIVE_DATA = {
     usedClientIds: new Set(),
+    userNames: new Map(),
     activeConnections: new Map(),            // clientId -> WebSocket
     clientConnections: new Map(),   // clientId -> connection info
     userRooms: new Map()
@@ -114,7 +117,6 @@ function sendClientIdAssignment(socket, clientId) {
     const packet = [
         0, // server as sender
         PacketType.ID_ASSIGN,
-        getNextSequenceNumber(),
         clientId
     ];
     const encodedPacket = encodePacket(packet);
@@ -152,8 +154,6 @@ function setupClientEventListeners(clientId, socket) {
 
 function handleClientDisconnection(clientId) {
     const clientInfo = ACTIVE_DATA.clientConnections.get(clientId);
-    handleRoomLeavePacket(clientId);
-
     log('INFO', 'Client disconnected', {
         clientId,
         stats: {
@@ -165,9 +165,13 @@ function handleClientDisconnection(clientId) {
         }
     });
 
+    handleRoomLeavePacket(clientId, clientInfo?.roomId, ACTIVE_DATA, log);
     ACTIVE_DATA.activeConnections.delete(clientId);
     ACTIVE_DATA.clientConnections.delete(clientId);
     ACTIVE_DATA.usedClientIds.delete(clientId);
+    ACTIVE_DATA.userNames.delete(clientId);
+    updateUserNamesToClients(ACTIVE_DATA, log);
+
 }
 
 // 11) Server Initialization
