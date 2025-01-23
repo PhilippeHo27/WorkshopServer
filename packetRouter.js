@@ -1,5 +1,4 @@
 // packetRouter.js
-// Routes incoming packets to the appropriate handler, based on PacketType.
 
 const PacketType = require('./packetTypes');
 const { handleChatPacket } = require('./chatHandler');
@@ -11,15 +10,6 @@ const {
     handleRoomDestroyPacket
 } = require('./roomHandlers');
 
-/**
- * Route the decoded packet to the correct handler.
- *
- * @param {number} clientId
- * @param {Buffer} message
- * @param {object} state - the global state
- * @param {function} log - the logging function
- * @param {function} decodeMsgPack - your decode function
- */
 function routePacket(clientId, message, state, log, decodeMsgPack) {
     if (!Buffer.isBuffer(message)) {
         log('WARN', 'Received non-binary message. Ignoring.', { clientId });
@@ -39,16 +29,16 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             handlePositionPacket(clientId, decoded, message, state, log);
             break;
         case PacketType.ROOM_CREATE:
-            handleRoomCreatePacket(clientId, decoded, message, state, log);
+            handleRoomCreatePacket(clientId, decoded[2], state, log);
             break;
         case PacketType.ROOM_JOIN:
-            handleRoomJoinPacket(clientId, decoded, message, state, log);
+            handleRoomJoinPacket(clientId, decoded[2], state, log);
             break;
         case PacketType.ROOM_LEAVE:
-            handleRoomLeavePacket(clientId, decoded, message, state, log);
+            handleRoomLeavePacket(clientId, decoded[2], state, log);
             break;
         case PacketType.ROOM_DESTROY:
-            handleRoomDestroyPacket(clientId, decoded, message, state, log);
+            handleRoomDestroyPacket(clientId, decoded[2], state, log);
             break;
         default:
             log('WARN', 'Unknown packet type', { clientId, type: packetType, decoded });

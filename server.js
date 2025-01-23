@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const msgpack = require('@msgpack/msgpack');
 const { routePacket } = require('./packetRouter');
 const PacketType = require('./packetTypes');
+const { handleRoomLeavePacket } = require('./roomHandlers');
 
 // 1) Server Configuration
 const SERVER_CONFIG = {
@@ -22,10 +23,11 @@ const LOG_LEVELS = {
 };
 
 // 3) Server State
-const STATE = {
+const ACTIVE_DATA = {
     usedClientIds: new Set(),
-    clients: new Map(),            // clientId -> WebSocket
-    clientConnections: new Map()   // clientId -> connection info
+    activeConnections: new Map(),            // clientId -> WebSocket
+    clientConnections: new Map(),   // clientId -> connection info
+    userRooms: new Map()
 };
 
 // 4) Simple Logger
@@ -44,10 +46,10 @@ function log(level, message, data = {}) {
 // 5) Utility: Generate next client ID
 function getNextAvailableClientId() {
     let id = 1;
-    while (STATE.usedClientIds.has(id)) {
+    while (ACTIVE_DATA.usedClientIds.has(id)) {
         id++;
     }
-    STATE.usedClientIds.add(id);
+    ACTIVE_DATA.usedClientIds.add(id);
     return id;
 }
 
@@ -92,14 +94,14 @@ function getNextSequenceNumber() {
 function sendTimeSync() {
     const currentTime = Date.now();
     const packet = [
-        0, // senderId 0 for server
+        0,
         PacketType.TIME_SYNC,
         getNextSequenceNumber(),
         currentTime
     ];
     const encodedPacket = encodePacket(packet);
 
-    STATE.clients.forEach((client, id) => {
+    ACTIVE_DATA.activeConnections.forEach((client, id) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(encodedPacket);
             //log('DEBUG', 'Sent TIME_SYNC packet', { clientId: id, serverTime: currentTime });
@@ -129,14 +131,14 @@ function handleNewConnection(socket) {
 
 function setupNewClient(clientId, socket) {
     log('INFO', 'New client connected', { clientId });
-    STATE.clients.set(clientId, socket);
-    STATE.clientConnections.set(clientId, createClientConnectionInfo());
+    ACTIVE_DATA.activeConnections.set(clientId, socket);
+    ACTIVE_DATA.clientConnections.set(clientId, createClientConnectionInfo());
     sendClientIdAssignment(socket, clientId);
 }
 
 function setupClientEventListeners(clientId, socket) {
     socket.on('message', (message) => {
-        routePacket(clientId, message, STATE, log, decodeMsgPack);
+        routePacket(clientId, message, ACTIVE_DATA, log, decodeMsgPack);
     });
 
     socket.on('close', () => {
@@ -149,7 +151,9 @@ function setupClientEventListeners(clientId, socket) {
 }
 
 function handleClientDisconnection(clientId) {
-    const clientInfo = STATE.clientConnections.get(clientId);
+    const clientInfo = ACTIVE_DATA.clientConnections.get(clientId);
+    handleRoomLeavePacket(clientId);
+
     log('INFO', 'Client disconnected', {
         clientId,
         stats: {
@@ -161,9 +165,9 @@ function handleClientDisconnection(clientId) {
         }
     });
 
-    STATE.clients.delete(clientId);
-    STATE.clientConnections.delete(clientId);
-    STATE.usedClientIds.delete(clientId);
+    ACTIVE_DATA.activeConnections.delete(clientId);
+    ACTIVE_DATA.clientConnections.delete(clientId);
+    ACTIVE_DATA.usedClientIds.delete(clientId);
 }
 
 // 11) Server Initialization

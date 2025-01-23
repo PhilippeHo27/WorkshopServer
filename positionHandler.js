@@ -2,15 +2,8 @@
 const PacketType = require('./packetTypes');
 const { broadcastToRoom } = require('./roomManager');
 
-/**
- * Handle an incoming POSITION packet. 
- * Example structure of decoded data might be:
- * [senderId, PacketType.POSITION, sequence, objectId, posX, posY, posZ, (optional) roomId]
- */
 function handlePositionPacket(clientId, decoded, originalMessage, state, log) {
-    // destructure as needed
-    // e.g. [senderId, type, sequence, objectId, posX, posY, posZ, roomId?]
-    const [senderId, packetType, sequence, objectId, posX, posY, posZ, roomId] = decoded;
+    const [senderId, packetType, objectId, posX, posY, posZ] = decoded;
 
     log('INFO', 'Position update received', {
         clientId,
@@ -32,9 +25,7 @@ function handlePositionPacket(clientId, decoded, originalMessage, state, log) {
     updateClientStats(clientId, PacketType.POSITION, state);
 }
 
-/**
- * Broadcast to everyone except the sender.
- */
+
 function fastBroadcast(senderId, binaryMessage, state) {
     state.clients.forEach((socket, id) => {
         if (id !== senderId && socket.readyState === 1) {
@@ -43,9 +34,7 @@ function fastBroadcast(senderId, binaryMessage, state) {
     });
 }
 
-/**
- * Update client stats if needed (similar to chatHandler.js).
- */
+
 function updateClientStats(clientId, packetType, state) {
     const clientInfo = state.clientConnections.get(clientId);
     if (!clientInfo) return;

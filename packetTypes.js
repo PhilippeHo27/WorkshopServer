@@ -1,6 +1,4 @@
 // packetTypes.js
-// This file holds all the packet type constants so that all modules
-// can reference them from one place.
 
 module.exports = {
     CHAT: 0,
@@ -12,5 +10,6 @@ module.exports = {
     ROOM_CREATE: 4,
     ROOM_JOIN: 5,
     ROOM_LEAVE: 6,
-    ROOM_DESTROY: 7
+    ROOM_DESTROY: 7,
+    SERVER_RESPONSE: 8
 };
