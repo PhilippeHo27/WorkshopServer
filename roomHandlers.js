@@ -14,9 +14,18 @@ function handleRoomCreatePacket(clientId, roomId, state, log)
 
     let success = false;     
     if (!state.userRooms.has(roomId)) {
+        // Create room
         state.userRooms.set(roomId, { clients: new Set() });
-        success = true;
-        log('INFO', 'Room created', { roomId });
+        const room = state.userRooms.get(roomId);
+        
+        // Auto-join creator
+        if (room.clients.size < ROOM_CONFIG.MAX_CLIENTS) {
+            room.clients.add(clientId);
+            success = true;
+            log('INFO', 'Room created and joined', { roomId, clientId });
+        } else {
+            log('WARN', 'Room created but join failed - room full', { roomId });
+        }
     } else {
         log('WARN', 'Room already exists', { roomId });
     }
@@ -28,7 +37,6 @@ function handleRoomCreatePacket(clientId, roomId, state, log)
         log('DEBUG', 'Sent room create response', { clientId, success });
     }
 }
-
 
 function handleRoomJoinPacket(clientId, roomId, state, log) 
 {

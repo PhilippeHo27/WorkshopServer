@@ -136,6 +136,7 @@ function setupNewClient(clientId, socket) {
     ACTIVE_DATA.activeConnections.set(clientId, socket);
     ACTIVE_DATA.clientConnections.set(clientId, createClientConnectionInfo());
     sendClientIdAssignment(socket, clientId);
+    updateUserNamesToClients(ACTIVE_DATA, log);
 }
 
 function setupClientEventListeners(clientId, socket) {
@@ -171,7 +172,6 @@ function handleClientDisconnection(clientId) {
     ACTIVE_DATA.usedClientIds.delete(clientId);
     ACTIVE_DATA.userNames.delete(clientId);
     updateUserNamesToClients(ACTIVE_DATA, log);
-
 }
 
 // 11) Server Initialization

@@ -11,22 +11,24 @@ function handleChatPacket(clientId, decoded, binaryMessage, state, log) {
         return;
     }
 
-    const roomId = state.userRooms.get(clientId);
-    log('INFO', 'Chat message received', { clientId, senderId, text, roomId});
-
-    if (roomId !== undefined && roomId !== null) {
-        broadcastToRoom(roomId, clientId, binaryMessage, state);
+    // Find which room this client is in
+    const room = Array.from(state.userRooms.entries())
+        .find(([_, roomData]) => roomData.clients.has(clientId));
+    
+    if (!room) {
+        log('WARN', 'Client not in any room', { clientId });
+        return;
     }
 
+    const [roomId, roomData] = room;
+    log('INFO', 'Chat message received', { clientId, senderId, text, roomId });
+
+    broadcastToRoom(roomId, clientId, binaryMessage, state, roomData);
     updateClientStats(clientId, PacketType.CHAT, state);
 }
 
-function broadcastToRoom(roomId, senderId, binaryMessage, state) {
-    const roomMembers = Array.from(state.userRooms.entries())
-    .filter(entry => entry[1] === roomId)
-    .map(entry => entry[0]); 
-    
-    roomMembers.forEach(clientId => {
+function broadcastToRoom(roomId, senderId, binaryMessage, state, roomData) {
+    roomData.clients.forEach(clientId => {
         if (clientId !== senderId) {
             const clientSocket = state.activeConnections.get(clientId);
             if (clientSocket && clientSocket.readyState === 1) {

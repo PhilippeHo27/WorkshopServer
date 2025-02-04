@@ -21,16 +21,15 @@ function storeUserName(clientId, userName, state, log) {
 }
 
 function updateUserNamesToClients(state, log) {
-    // Create a simple array of [clientId, userName] pairs
-    const userList = Array.from(state.userNames.entries()).map(([id, name]) => ({
-        id,
-        name
-    }));
+    const userList = Array.from(state.userNames.entries()).map(([id, name]) => 
+        [id, name]  // Array instead of object
+    );
+    
 
     // Prepare the packet
     const packet = msgpack.encode([
         0, // sequence number (not used for system messages)
-        PacketType.USER_LIST_UPDATE,
+        PacketType.USER_INFO,
         userList
     ]);
 
