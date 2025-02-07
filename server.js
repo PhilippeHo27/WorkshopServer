@@ -11,42 +11,36 @@ const { updateUserNamesToClients } = require('./userInfoHandler');
 const SERVER_CONFIG = {
     port: 8080,
     timeSync: {
-        interval: 1000, // in milliseconds
-        enabled: true
+        interval: 1000,
+        enabled: false
     }
 };
 
-// 2) Logging Levels (optional)
-const LOG_LEVELS = {
-    DEBUG: 0,
-    INFO: 1,
-    WARN: 2,
-    ERROR: 3
+const PERMANENT_ROOMS = {
+    PONG_ROOM: 'pongRoom'
 };
 
-// 3) Server State
+// 2) Server State
 const ACTIVE_DATA = {
     usedClientIds: new Set(),
     userNames: new Map(),
-    activeConnections: new Map(),            // clientId -> WebSocket
-    clientConnections: new Map(),   // clientId -> connection info
+    activeConnections: new Map(),
+    clientConnections: new Map(),
     userRooms: new Map()
 };
 
 // 4) Simple Logger
-function log(level, message, data = {}) {
-    const timestamp = new Date().toISOString();
-    console.log(
-        JSON.stringify({
-            timestamp,
-            level: LOG_LEVELS[level],
-            message,
-            ...data
-        })
-    );
+function log(message, data = {}) {
+    const d = new Date();
+    const t = `${String(d.getHours()).padStart(2, '0')}:${
+        String(d.getMinutes()).padStart(2, '0')}:${
+        String(d.getSeconds()).padStart(2, '0')}.${
+        String(d.getMilliseconds()).padStart(3, '0')}`;
+    console.log(JSON.stringify({ t, message, ...data }));
 }
 
-// 5) Utility: Generate next client ID
+
+// 4) Utility: Generate next client ID
 function getNextAvailableClientId() {
     let id = 1;
     while (ACTIVE_DATA.usedClientIds.has(id)) {
@@ -56,31 +50,38 @@ function getNextAvailableClientId() {
     return id;
 }
 
-// 6) Utility: Create new client connection info
+// 5) Utility: Create new client connection info
 function createClientConnectionInfo() {
     return {
         connectTime: Date.now(),
         lastMessageTime: null,
         messageCount: 0,
-        chatCount: 0
+        chatCount: 0,
+        roomId: null
     };
 }
 
-// 7) Utility: Encode / Decode
+// 6) Utility: Encode / Decode
 function encodePacket(packetArray) {
     return msgpack.encode(packetArray);
 }
 
 function decodeMsgPack(message) {
     try {
-        const decoded = msgpack.decode(message);
-        log('DEBUG', 'Decoded MessagePack data', {
+        const decoded = msgpack.decode(message, {
+            useDefaults: true,
+            ignoreUndefined: true,
+            requireAllProperties: false,
+            extensionCodec: new msgpack.ExtensionCodec(),
+            context: undefined,
+        });
+        log('Decoded MessagePack data', {
             raw: Array.from(message).slice(0, 20),
             decoded
         });
         return decoded;
     } catch (error) {
-        log('ERROR', 'MessagePack decode failed', {
+        log('MessagePack decode failed', {
             error: error.message,
             messageLength: message.length
         });
@@ -88,7 +89,8 @@ function decodeMsgPack(message) {
     }
 }
 
-// 8) Time Sync
+
+// 7) Time Sync
 let globalSequenceNumber = 0;
 function getNextSequenceNumber() {
     return globalSequenceNumber++;
@@ -107,24 +109,24 @@ function sendTimeSync() {
     ACTIVE_DATA.activeConnections.forEach((client, id) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(encodedPacket);
-            //log('DEBUG', 'Sent TIME_SYNC packet', { clientId: id, serverTime: currentTime });
+            log('Sent TIME_SYNC packet', { clientId: id, serverTime: currentTime });
         }
     });
 }
 
-// 9) ID Assignment
+// 8) ID Assignment
 function sendClientIdAssignment(socket, clientId) {
     const packet = [
-        0, // server as sender
+        0,
         PacketType.ID_ASSIGN,
         clientId
     ];
     const encodedPacket = encodePacket(packet);
     socket.send(encodedPacket);
-    log('DEBUG', 'Sent ID_ASSIGN packet', { clientId, encodedPacket: Array.from(encodedPacket) });
+    log('Sent ID_ASSIGN packet', { clientId, encodedPacket: Array.from(encodedPacket) });
 }
 
-// 10) Handle Connections and Disconnections
+// 9) Handle Connections and Disconnections
 function handleNewConnection(socket) {
     const clientId = getNextAvailableClientId();
     setupNewClient(clientId, socket);
@@ -132,11 +134,10 @@ function handleNewConnection(socket) {
 }
 
 function setupNewClient(clientId, socket) {
-    log('INFO', 'New client connected', { clientId });
+    log('New client connected', { clientId });
     ACTIVE_DATA.activeConnections.set(clientId, socket);
     ACTIVE_DATA.clientConnections.set(clientId, createClientConnectionInfo());
     sendClientIdAssignment(socket, clientId);
-    updateUserNamesToClients(ACTIVE_DATA, log);
 }
 
 function setupClientEventListeners(clientId, socket) {
@@ -149,13 +150,13 @@ function setupClientEventListeners(clientId, socket) {
     });
 
     socket.on('error', (error) => {
-        log('ERROR', 'Socket error', { clientId, error: error.message });
+        log('Socket error', { clientId, error: error.message });
     });
 }
 
 function handleClientDisconnection(clientId) {
     const clientInfo = ACTIVE_DATA.clientConnections.get(clientId);
-    log('INFO', 'Client disconnected', {
+    log('Client disconnected', {
         clientId,
         stats: {
             connectTime: clientInfo ? clientInfo.connectTime : 0,
@@ -166,7 +167,19 @@ function handleClientDisconnection(clientId) {
         }
     });
 
-    handleRoomLeavePacket(clientId, clientInfo?.roomId, ACTIVE_DATA, log);
+    // Only handle room leave if client is in a room AND it's not the pong room
+    if (clientInfo?.roomId && clientInfo.roomId !== 'pongRoom') {
+        handleRoomLeavePacket(clientId, clientInfo.roomId, ACTIVE_DATA, log);
+    }
+
+    // Remove client from pong room's client list if they were in it
+    const pongRoom = ACTIVE_DATA.userRooms.get('pongRoom');
+    if (pongRoom) {
+        pongRoom.clients.delete(clientId);
+    }
+    
+
+    // Clean up client data
     ACTIVE_DATA.activeConnections.delete(clientId);
     ACTIVE_DATA.clientConnections.delete(clientId);
     ACTIVE_DATA.usedClientIds.delete(clientId);
@@ -174,13 +187,14 @@ function handleClientDisconnection(clientId) {
     updateUserNamesToClients(ACTIVE_DATA, log);
 }
 
-// 11) Server Initialization
-const server = new WebSocket.Server({ port: SERVER_CONFIG.port });
-
-server.on('connection', handleNewConnection);
-
-if (SERVER_CONFIG.timeSync.enabled) {
-    setInterval(sendTimeSync, SERVER_CONFIG.timeSync.interval);
+// 10) Server Initialization
+function initializePermanentRooms() {
+    ACTIVE_DATA.userRooms.set(PERMANENT_ROOMS.PONG_ROOM, {
+        clients: new Set(),
+    });
 }
 
-log('INFO', 'WebSocket server started', { port: SERVER_CONFIG.port });
+const server = new WebSocket.Server({ port: SERVER_CONFIG.port });
+initializePermanentRooms();
+server.on('connection', handleNewConnection);
+log('WebSocket server started', { });

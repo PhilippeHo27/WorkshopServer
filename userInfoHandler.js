@@ -3,15 +3,26 @@ const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
 
 function storeUserName(clientId, userName, state, log) {
+    log('Received username data', { 
+        clientId, 
+        userName,
+        typeOfUserName: typeof userName,
+        userNameValue: userName
+    });
+
     if (!userName || typeof userName !== 'string') {
-        log('WARN', 'Invalid username received', { clientId, userName });
-        return; // just return without value
+        log('Invalid username received', { 
+            clientId, 
+            userName,
+            typeOfUserName: typeof userName
+        });
+        return;
     }
 
     const previousName = state.userNames.get(clientId);
     state.userNames.set(clientId, userName);
     
-    log('INFO', 'Username stored', {
+    log('Username stored', {
         clientId,
         userName,
         previousName: previousName || 'none'
@@ -37,14 +48,14 @@ function updateUserNamesToClients(state, log) {
     state.activeConnections.forEach((socket, clientId) => {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(packet);
-            log('DEBUG', 'Sent user list update', { 
+            log('Sent user list update', { 
                 recipientId: clientId, 
                 userCount: userList.length 
             });
         }
     });
 
-    log('INFO', 'Broadcast user list update', { 
+    log('Broadcast user list update', { 
         connectedUsers: userList.length,
         users: userList
     });

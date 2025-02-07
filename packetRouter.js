@@ -12,7 +12,7 @@ const { storeUserName } = require('./userInfoHandler.js');
 
 function routePacket(clientId, message, state, log, decodeMsgPack) {
     if (!Buffer.isBuffer(message)) {
-        log('WARN', 'Received non-binary message. Ignoring.', { clientId });
+        log('Received non-binary message. Ignoring.', { clientId });
         return;
     }
 
@@ -26,7 +26,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             handleChatPacket(clientId, decoded, message, state, log);
             break;
         case PacketType.POSITION:
-            handlePositionPacket(clientId, decoded, message, state, log);
+            handlePositionPacket(clientId, message, state);
             break;
         case PacketType.ROOM_CREATE:
             handleRoomCreatePacket(clientId, decoded[2], state, log);
@@ -44,7 +44,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             storeUserName(clientId, decoded[2], state, log);
             break;
         default:
-            log('WARN', 'Unknown packet type', { clientId, type: packetType, decoded });
+            log('Unknown packet type', { clientId, type: packetType, decoded });
     }
 }
 
