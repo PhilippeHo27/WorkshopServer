@@ -5,6 +5,7 @@ const { routePacket } = require('./packetRouter');
 const PacketType = require('./packetTypes');
 const { handleRoomLeavePacket } = require('./roomHandlers');
 const { updateUserNamesToClients } = require('./userInfoHandler');
+const { handleClientDisconnect } = require('./matchmakingHandler');
 
 
 // 1) Server Configuration
@@ -17,7 +18,8 @@ const SERVER_CONFIG = {
 };
 
 const PERMANENT_ROOMS = {
-    PONG_ROOM: 'pongRoom'
+    PONG_ROOM: 'pongRoom',
+    VINCE_GAME_LOBBY: 'vinceGameLobby'
 };
 
 // 2) Server State
@@ -167,17 +169,26 @@ function handleClientDisconnection(clientId) {
         }
     });
 
-    // Only handle room leave if client is in a room AND it's not the pong room
-    if (clientInfo?.roomId && clientInfo.roomId !== 'pongRoom') {
+    // Handle matchmaking cleanup for disconnected client
+    handleClientDisconnect(clientId, ACTIVE_DATA, log);
+
+    // Only handle room leave if client is in a room AND it's not a permanent room
+    if (clientInfo?.roomId && 
+        clientInfo.roomId !== PERMANENT_ROOMS.PONG_ROOM && 
+        clientInfo.roomId !== PERMANENT_ROOMS.VINCE_GAME_LOBBY) {
         handleRoomLeavePacket(clientId, clientInfo.roomId, ACTIVE_DATA, log);
     }
 
     // Remove client from pong room's client list if they were in it
-    const pongRoom = ACTIVE_DATA.userRooms.get('pongRoom');
+    const pongRoom = ACTIVE_DATA.userRooms.get(PERMANENT_ROOMS.PONG_ROOM);
     if (pongRoom) {
         pongRoom.clients.delete(clientId);
     }
-    
+
+    const vinceGameLobby = ACTIVE_DATA.userRooms.get(PERMANENT_ROOMS.VINCE_GAME_LOBBY);
+    if (vinceGameLobby) {
+        vinceGameLobby.clients.delete(clientId);
+    }
 
     // Clean up client data
     ACTIVE_DATA.activeConnections.delete(clientId);
@@ -187,9 +198,13 @@ function handleClientDisconnection(clientId) {
     updateUserNamesToClients(ACTIVE_DATA, log);
 }
 
+
 // 10) Server Initialization
 function initializePermanentRooms() {
     ACTIVE_DATA.userRooms.set(PERMANENT_ROOMS.PONG_ROOM, {
+        clients: new Set(),
+    });
+    ACTIVE_DATA.userRooms.set(PERMANENT_ROOMS.VINCE_GAME_LOBBY, {
         clients: new Set(),
     });
 }

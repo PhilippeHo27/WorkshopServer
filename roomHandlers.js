@@ -120,8 +120,51 @@ function handleRoomLeavePacket(clientId, roomId, state, log) {
     }
 }
 
+function handleRoomDestroyPacket(clientId, roomId, state, log) {
+    log('Room destroy request', { clientId, roomId });
+
+    let success = false;
+    
+    const room = state.userRooms.get(roomId);
+    if (!room) {
+        log('Failed to destroy room', {
+            clientId,
+            roomId,
+            reason: 'Room does not exist'
+        });
+    } else {
+        // Notify all clients in the room that it's being destroyed
+        room.clients.forEach(memberId => {
+            // Clear room from client info
+            if (state.clientConnections.has(memberId)) {
+                state.clientConnections.get(memberId).roomId = null;
+            }
+            
+            // Send notification to each client
+            const memberSocket = state.activeConnections.get(memberId);
+            if (memberSocket && memberSocket.readyState === WebSocket.OPEN) {
+                memberSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, true]));
+            }
+        });
+
+        // Delete the room
+        state.userRooms.delete(roomId);
+        success = true;
+        log('Room destroyed', { clientId, roomId });
+    }
+
+    // Send confirmation to the client who requested the destroy
+    const clientSocket = state.activeConnections.get(clientId);
+    if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
+        clientSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, success]));
+        log('Sent room destroy response', { clientId, success });
+    }
+}
+
+
 module.exports = {
     handleRoomCreatePacket,
     handleRoomJoinPacket,
-    handleRoomLeavePacket
+    handleRoomLeavePacket,
+    handleRoomDestroyPacket
 };
