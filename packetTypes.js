@@ -23,5 +23,6 @@ module.exports = {
     
     // New packet types for the ready system:
     GAME_START_INFO: 15,
-    OPPONENT_DISCONNECTED: 17
+    OPPONENT_DISCONNECTED: 17,
+    EXTRA_TURN_MOVES: 18
 };

@@ -3,7 +3,7 @@ const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
 
 // Track ready states for each room
-const readyStates = new Map(); // Map<roomId, Map<clientId, boolean>>
+const readyStates = new Map();
 
 function handleVinceGamePacket(clientId, binaryMessage, state) {
     const clientState = state.clientConnections.get(clientId);
@@ -16,16 +16,17 @@ function handleVinceGamePacket(clientId, binaryMessage, state) {
     broadcastToRoom(clientId, binaryMessage, state, room);
 }
 
-function broadcastToRoom(senderId, binaryMessage, state, roomData) {
-    roomData.clients.forEach(clientId => {
-        if (clientId !== senderId) {
-            const clientSocket = state.activeConnections.get(clientId);
-            if (clientSocket && clientSocket.readyState === 1) {
-                clientSocket.send(binaryMessage);
-            }
-        }
-    });
+function handleExtraTurnMoves(clientId, binaryMessage, state) {
+    const clientState = state.clientConnections.get(clientId);
+    if (!clientState || !clientState.roomId) return;
+
+    const roomId = clientState.roomId;
+    const room = state.userRooms.get(roomId);
+    if (!room) return;
+
+    broadcastToRoom(clientId, binaryMessage, state, room);
 }
+
 
 function handleVinceGameConfirmStart(clientId, data, state, log) {
     const clientState = state.clientConnections.get(clientId);
@@ -35,8 +36,8 @@ function handleVinceGameConfirmStart(clientId, data, state, log) {
     const room = state.userRooms.get(roomId);
     if (!room) return;
     
-    // Extract ready state from the packet
-    const isReady = data[2]; // Boolean value from BooleanPacket
+    // Extract ready state Boolean value of the BooleanPacket
+    const isReady = data[2];
     
     // Initialize ready states for this room if not exists
     if (!readyStates.has(roomId)) {
@@ -172,10 +173,22 @@ function handleVinceGameImmune(clientId, binaryMessage, state, log) {
     broadcastToRoom(clientId, binaryMessage, state, room);
 }
 
+function broadcastToRoom(senderId, binaryMessage, state, roomData) {
+    roomData.clients.forEach(clientId => {
+        if (clientId !== senderId) {
+            const clientSocket = state.activeConnections.get(clientId);
+            if (clientSocket && clientSocket.readyState === 1) {
+                clientSocket.send(binaryMessage);
+            }
+        }
+    });
+}
+
 
 module.exports = {
     handleVinceGamePacket,
     handleVinceGameConfirmStart,
     handleClientDisconnect,
-    handleVinceGameImmune
+    handleVinceGameImmune,
+    handleExtraTurnMoves
 };
