@@ -1,5 +1,7 @@
 // chatHandler.js
 
+const { broadcastOriginalMessageToRoom } = require('./utils');
+
 function handleChatPacket(clientId, decoded, binaryMessage, state, log) {
     const [senderId, packetType, text] = decoded;
     
@@ -8,30 +10,12 @@ function handleChatPacket(clientId, decoded, binaryMessage, state, log) {
         return;
     }
 
-    // Find which room this client is in
-    const room = Array.from(state.userRooms.entries())
-        .find(([_, roomData]) => roomData.clients.has(clientId));
-    
-    if (!room) {
-        log('Client not in any room', { clientId });
-        return;
-    }
+    // Logging specific to chat can remain
+    log('Chat message received, preparing to broadcast', { clientId, senderId, text });
 
-    const [roomId, roomData] = room;
-    log('Chat message received', { clientId, senderId, text, roomId });
-
-    broadcastToRoom(clientId, binaryMessage, state, roomData);
-}
-
-function broadcastToRoom(senderId, binaryMessage, state, roomData) {
-    roomData.clients.forEach(clientId => {
-        if (clientId !== senderId) {
-            const clientSocket = state.activeConnections.get(clientId);
-            if (clientSocket && clientSocket.readyState === 1) {
-                clientSocket.send(binaryMessage);
-            }
-        }
-    });
+    // Use the new utility. It will find the room and broadcast.
+    // clientId is the senderId for broadcasting purposes.
+    broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 
 module.exports = {

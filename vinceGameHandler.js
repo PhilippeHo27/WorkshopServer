@@ -1,30 +1,21 @@
 // vinceGameHandler.js
 const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
+// broadcastToRoom is still used by handleVinceGameConfirmStart's direct broadcast.
+// broadcastOriginalMessageToRoom is for the simpler cases.
+const { broadcastToRoom, broadcastOriginalMessageToRoom } = require('./utils'); 
 
 // Track ready states for each room
 const readyStates = new Map();
 
-function handleVinceGamePacket(clientId, binaryMessage, state) {
-    const clientState = state.clientConnections.get(clientId);
-    if (!clientState || !clientState.roomId) return;
-
-    const roomId = clientState.roomId;
-    const room = state.userRooms.get(roomId);
-    if (!room) return;
-
-    broadcastToRoom(clientId, binaryMessage, state, room);
+function handleVinceGamePacket(clientId, binaryMessage, state, log) { 
+    // Use the new utility. It will find the room (via clientConnections) and broadcast.
+    broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 
-function handleExtraTurnMoves(clientId, binaryMessage, state) {
-    const clientState = state.clientConnections.get(clientId);
-    if (!clientState || !clientState.roomId) return;
-
-    const roomId = clientState.roomId;
-    const room = state.userRooms.get(roomId);
-    if (!room) return;
-
-    broadcastToRoom(clientId, binaryMessage, state, room);
+function handleExtraTurnMoves(clientId, binaryMessage, state, log) { 
+    // Use the new utility. It will find the room and broadcast.
+    broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 
 
@@ -50,7 +41,9 @@ function handleVinceGameConfirmStart(clientId, data, state, log) {
     
     log('Player ready state updated', { clientId, roomId, isReady });
     
-    // Forward ready state to other player
+    // Forward ready state to other player - this one is specific, not broadcasting original message
+    // but a newly encoded 'data' (which is the decoded original packet)
+    // The 'room' variable from above is correctly in scope here.
     broadcastToRoom(clientId, msgpack.encode(data), state, room);
     
     // Check if both players are ready
@@ -160,30 +153,10 @@ function handleClientDisconnect(clientId, state, log) {
 
 // Add this function to vinceGameHandler.js
 function handleVinceGameImmune(clientId, binaryMessage, state, log) {
-    const clientState = state.clientConnections.get(clientId);
-    if (!clientState || !clientState.roomId) return;
-
-    const roomId = clientState.roomId;
-    const room = state.userRooms.get(roomId);
-    if (!room) return;
-
-    log('Broadcasting immune pieces update', { clientId, roomId });
-    
-    // Broadcast the immune pieces update to all other clients in the room
-    broadcastToRoom(clientId, binaryMessage, state, room);
+    log('Broadcasting immune pieces update via utility', { clientId });
+    // Use the new utility. It will find the room and broadcast.
+    broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
-
-function broadcastToRoom(senderId, binaryMessage, state, roomData) {
-    roomData.clients.forEach(clientId => {
-        if (clientId !== senderId) {
-            const clientSocket = state.activeConnections.get(clientId);
-            if (clientSocket && clientSocket.readyState === 1) {
-                clientSocket.send(binaryMessage);
-            }
-        }
-    });
-}
-
 
 module.exports = {
     handleVinceGamePacket,

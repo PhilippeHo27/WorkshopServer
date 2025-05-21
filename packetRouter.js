@@ -33,7 +33,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             handleChatPacket(clientId, decoded, message, state, log);
             break;
         case PacketType.POSITION: // redundant
-            handlePositionPacket(clientId, message, state);
+            handlePositionPacket(clientId, message, state, log);
             break;
         case PacketType.ROOM_CREATE:
             handleRoomCreatePacket(clientId, decoded[2], state, log);

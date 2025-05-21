@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
+const { sendServerResponseToClient } = require('./utils');
 
 const ROOM_CONFIG = {
     MAX_CLIENTS: 8,
@@ -32,12 +33,7 @@ function handleRoomCreatePacket(clientId, roomId, state, log)
         log('Room already exists', { roomId });
     }
     
-    const clientSocket = state.activeConnections.get(clientId);
-    if (clientSocket && clientSocket.readyState === WebSocket.OPEN) 
-    {
-        clientSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, success]));
-        log('Sent room create response', { clientId, success });
-    }
+    sendServerResponseToClient(clientId, success, state, log, 'Sent room create response');
 }
 
 function handleRoomJoinPacket(clientId, roomId, state, log) 
@@ -72,20 +68,16 @@ function handleRoomJoinPacket(clientId, roomId, state, log)
         log('Joined room successfully', { clientId, roomId });
     }
 
-    const clientSocket = state.activeConnections.get(clientId);
-    if (clientSocket && clientSocket.readyState === WebSocket.OPEN) 
-    {
-        clientSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, success]));
-        log('Sent room join response', { clientId, success });
-    }
+    sendServerResponseToClient(clientId, success, state, log, 'Sent room join response');
 }
 
-function handleRoomLeavePacket(clientId, roomId, state, log) {
+function handleRoomLeavePacket(clientId, roomId, state, log, permanentRoomsConfig = {}) {
     log('Room leave request', { clientId, roomId });
 
     // If no roomId provided, try to get it from client connection info
-    if (!roomId && state.clientConnections.has(clientId)) {
-        roomId = state.clientConnections.get(clientId).roomId;
+    const clientConnectionInfo = state.clientConnections.get(clientId);
+    if (!roomId && clientConnectionInfo) {
+        roomId = clientConnectionInfo.roomId;
     }
 
     let success = false;
@@ -95,29 +87,27 @@ function handleRoomLeavePacket(clientId, roomId, state, log) {
         log('Failed to leave room', {
             clientId,
             roomId,
-            reason: 'Room does not exist'
+            reason: 'Room does not exist or client not in a room to leave'
         });
     } else {
         room.clients.delete(clientId);
         // Clear room from client info
-        if (state.clientConnections.has(clientId)) {
-            state.clientConnections.get(clientId).roomId = null;
+        if (clientConnectionInfo) {
+            clientConnectionInfo.roomId = null;
         }
         success = true;
         log('Client left room', { clientId, roomId });
 
-        // Clean up empty room
-        if (room.clients.size === 0) {
+        // Clean up empty room only if it's not a permanent room
+        const isPermanent = Object.values(permanentRoomsConfig).includes(roomId);
+        if (!isPermanent && room.clients.size === 0) {
             state.userRooms.delete(roomId);
-            log('Empty room removed', { roomId });
+            log('Empty non-permanent room removed', { roomId });
         }
     }
 
-    const clientSocket = state.activeConnections.get(clientId);
-    if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
-        clientSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, success]));
-        log('Sent room leave response', { clientId, success });
-    }
+    // Send response even if room didn't exist, client might expect confirmation of 'leave attempt'
+    sendServerResponseToClient(clientId, success, state, log, 'Sent room leave response');
 }
 
 function handleRoomDestroyPacket(clientId, roomId, state, log) {
@@ -141,10 +131,7 @@ function handleRoomDestroyPacket(clientId, roomId, state, log) {
             }
             
             // Send notification to each client
-            const memberSocket = state.activeConnections.get(memberId);
-            if (memberSocket && memberSocket.readyState === WebSocket.OPEN) {
-                memberSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, true]));
-            }
+            sendServerResponseToClient(memberId, true, state, log, 'Sent room destruction notification to member');
         });
 
         // Delete the room
@@ -154,11 +141,7 @@ function handleRoomDestroyPacket(clientId, roomId, state, log) {
     }
 
     // Send confirmation to the client who requested the destroy
-    const clientSocket = state.activeConnections.get(clientId);
-    if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
-        clientSocket.send(msgpack.encode([0, PacketType.SERVER_RESPONSE, success]));
-        log('Sent room destroy response', { clientId, success });
-    }
+    sendServerResponseToClient(clientId, success, state, log, 'Sent room destroy response');
 }
 
 

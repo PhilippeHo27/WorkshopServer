@@ -172,22 +172,10 @@ function handleClientDisconnection(clientId) {
     // Handle matchmaking cleanup for disconnected client
     handleClientDisconnect(clientId, ACTIVE_DATA, log);
 
-    // Only handle room leave if client is in a room AND it's not a permanent room
-    if (clientInfo?.roomId && 
-        clientInfo.roomId !== PERMANENT_ROOMS.PONG_ROOM && 
-        clientInfo.roomId !== PERMANENT_ROOMS.VINCE_GAME_LOBBY) {
-        handleRoomLeavePacket(clientId, clientInfo.roomId, ACTIVE_DATA, log);
-    }
-
-    // Remove client from pong room's client list if they were in it
-    const pongRoom = ACTIVE_DATA.userRooms.get(PERMANENT_ROOMS.PONG_ROOM);
-    if (pongRoom) {
-        pongRoom.clients.delete(clientId);
-    }
-
-    const vinceGameLobby = ACTIVE_DATA.userRooms.get(PERMANENT_ROOMS.VINCE_GAME_LOBBY);
-    if (vinceGameLobby) {
-        vinceGameLobby.clients.delete(clientId);
+    // If client was in any room, handle their departure.
+    // The updated handleRoomLeavePacket will correctly manage permanent vs. non-permanent rooms.
+    if (clientInfo?.roomId) {
+        handleRoomLeavePacket(clientId, clientInfo.roomId, ACTIVE_DATA, log, PERMANENT_ROOMS);
     }
 
     // Clean up client data

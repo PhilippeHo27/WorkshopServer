@@ -2,6 +2,7 @@
 const WebSocket = require('ws');
 const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
+const { sendServerResponseToClient } = require('./utils');
 
 // Matchmaking queue and state
 const matchmakingState = {
@@ -124,13 +125,7 @@ function handleClientDisconnect(clientId, state, log) {
             // Notify other player that opponent disconnected
             const otherPlayer = matchData.players.find(id => id !== clientId);
             if (otherPlayer) {
-                const otherSocket = state.activeConnections.get(otherPlayer);
-                if (otherSocket && otherSocket.readyState === WebSocket.OPEN) {
-                    // Send notification (you might want to create a specific packet type for this)
-                    const disconnectPacket = [0, PacketType.SERVER_RESPONSE, false];
-                    otherSocket.send(msgpack.encode(disconnectPacket));
-                    log('Sent opponent disconnect notification', { playerId: otherPlayer });
-                }
+                sendServerResponseToClient(otherPlayer, false, state, log, 'Sent opponent disconnect notification');
             }
             
             // Clean up the match
