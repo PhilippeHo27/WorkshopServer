@@ -10,11 +10,12 @@ const {
     handleRoomDestroyPacket
 } = require('./roomHandlers');
 const { storeUserName } = require('./userInfoHandler.js');
-const { handleVinceGamePacket,
-    handleVinceGameConfirmStart,
-    handleVinceGameImmune,
+const {
+    handleHiddenGamePacket,
+    handleHiddenGameConfirmStart,
+    handleHiddenGameImmune,
     handleExtraTurnMoves
-} = require('./vinceGameHandler.js');
+} = require('./hiddenGameHandler.js');
 const { handleMatchmakingRequest } = require('./matchmakingHandler.js');
 
 function routePacket(clientId, message, state, log, decodeMsgPack) {
@@ -29,10 +30,10 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
     const packetType = decoded[1];
 
     switch (packetType) {
-        case PacketType.CHAT: // redundant
+        case PacketType.CHAT:
             handleChatPacket(clientId, decoded, message, state, log);
             break;
-        case PacketType.POSITION: // redundant
+        case PacketType.POSITION:
             handlePositionPacket(clientId, message, state, log);
             break;
         case PacketType.ROOM_CREATE:
@@ -50,19 +51,19 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
         case PacketType.USER_INFO:
             storeUserName(clientId, decoded[2], state, log);
             break;
-        case PacketType.VINCE_GAME: // redundant
-            handleVinceGamePacket(clientId, message, state, log);
+        case PacketType.HIDDEN_GAME:
+            handleHiddenGamePacket(clientId, message, state, log);
             break;
-        case PacketType.VINCE_GAME_CONFIRM_START: // redundant
-            handleVinceGameConfirmStart(clientId, decoded, state, log);
+        case PacketType.HIDDEN_GAME_CONFIRM_START:
+            handleHiddenGameConfirmStart(clientId, decoded, state, log);
             break;
-        case PacketType.VINCE_GAME_IMMUNE: // redundant
-            handleVinceGameImmune(clientId, message, state, log);
+        case PacketType.HIDDEN_GAME_IMMUNE:
+            handleHiddenGameImmune(clientId, message, state, log);
             break;
         case PacketType.MATCH_MAKING_REQUEST:
             handleMatchmakingRequest(clientId, decoded, state, log);
             break;
-        case PacketType.EXTRA_TURN_MOVES: // redundant
+        case PacketType.EXTRA_TURN_MOVES:
             handleExtraTurnMoves(clientId, message, state, log);
             break;
         default:

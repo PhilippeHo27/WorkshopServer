@@ -1,5 +1,9 @@
 // utils.js
 
+const WebSocket = require('ws');
+const msgpack = require('@msgpack/msgpack');
+const PacketType = require('./packetTypes'); 
+
 /**
  * Broadcasts a binary message to all clients in a room except the sender.
  * @param {string} senderId - The ID of the client who sent the original message.
@@ -43,7 +47,7 @@ function broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log = co
             return;
         }
     } else {
-        // Try to find room from clientConnections (preferred for VinceGame)
+        // Try to find room from clientConnections (preferred)
         const clientState = state.clientConnections && state.clientConnections.get(clientId);
         if (clientState && clientState.roomId) {
             roomIdToLog = clientState.roomId;
@@ -66,10 +70,6 @@ function broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log = co
     log(`broadcastOriginalMessageToRoom: Broadcasting for client ${clientId} in room ${roomIdToLog}`);
     broadcastToRoom(clientId, binaryMessage, state, roomData);
 }
-
-const WebSocket = require('ws'); 
-const msgpack = require('@msgpack/msgpack');
-const PacketType = require('./packetTypes'); 
 
 /**
  * Sends a standardized SERVER_RESPONSE packet to a single client.

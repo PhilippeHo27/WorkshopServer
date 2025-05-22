@@ -14,10 +14,10 @@ module.exports = {
     SERVER_RESPONSE: 8,
     USER_INFO: 9,
 
-    // Vince's game
-    VINCE_GAME: 10,
-    VINCE_GAME_IMMUNE: 11,
-    VINCE_GAME_CONFIRM_START: 12,
+    // Hidden game
+    HIDDEN_GAME: 10,
+    HIDDEN_GAME_IMMUNE: 11,
+    HIDDEN_GAME_CONFIRM_START: 12,
     MATCH_MAKING_REQUEST: 13,
     MATCH_FOUND: 14,
     

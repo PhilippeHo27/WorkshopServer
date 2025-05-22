@@ -1,25 +1,41 @@
-// vinceGameHandler.js
+// hiddenGameHandler.js
 const msgpack = require('@msgpack/msgpack');
 const PacketType = require('./packetTypes');
-// broadcastToRoom is still used by handleVinceGameConfirmStart's direct broadcast.
-// broadcastOriginalMessageToRoom is for the simpler cases.
 const { broadcastToRoom, broadcastOriginalMessageToRoom } = require('./utils'); 
 
 // Track ready states for each room
 const readyStates = new Map();
 
-function handleVinceGamePacket(clientId, binaryMessage, state, log) { 
-    // Use the new utility. It will find the room (via clientConnections) and broadcast.
+/**
+ * Handle Hidden game packet.
+ * @param {string} clientId - Client ID.
+ * @param {Buffer} binaryMessage - Binary message.
+ * @param {object} state - State object.
+ * @param {function} log - Log function.
+ */
+function handleHiddenGamePacket(clientId, binaryMessage, state, log) { 
     broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 
+/**
+ * Handle extra turn moves.
+ * @param {string} clientId - Client ID.
+ * @param {Buffer} binaryMessage - Binary message.
+ * @param {object} state - State object.
+ * @param {function} log - Log function.
+ */
 function handleExtraTurnMoves(clientId, binaryMessage, state, log) { 
-    // Use the new utility. It will find the room and broadcast.
     broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 
-
-function handleVinceGameConfirmStart(clientId, data, state, log) {
+/**
+ * Handle Hidden game confirm start.
+ * @param {string} clientId - Client ID.
+ * @param {array} data - Data array.
+ * @param {object} state - State object.
+ * @param {function} log - Log function.
+ */
+function handleHiddenGameConfirmStart(clientId, data, state, log) {
     const clientState = state.clientConnections.get(clientId);
     if (!clientState || !clientState.roomId) return;
 
@@ -41,9 +57,7 @@ function handleVinceGameConfirmStart(clientId, data, state, log) {
     
     log('Player ready state updated', { clientId, roomId, isReady });
     
-    // Forward ready state to other player - this one is specific, not broadcasting original message
-    // but a newly encoded 'data' (which is the decoded original packet)
-    // The 'room' variable from above is correctly in scope here.
+    // Forward ready state to other player
     broadcastToRoom(clientId, msgpack.encode(data), state, room);
     
     // Check if both players are ready
@@ -71,7 +85,12 @@ function handleVinceGameConfirmStart(clientId, data, state, log) {
     }
 }
 
-// Helper function to check if all players in the room are ready
+/**
+ * Helper function to check if all players in the room are ready.
+ * @param {object} room - Room object.
+ * @param {Map} roomReadyStates - Room ready states map.
+ * @returns {boolean} True if all players are ready, false otherwise.
+ */
 function checkAllPlayersReady(room, roomReadyStates) {
     // Make sure we have all players accounted for
     if (room.clients.size !== roomReadyStates.size) {
@@ -89,6 +108,11 @@ function checkAllPlayersReady(room, roomReadyStates) {
     return true;
 }
 
+/**
+ * Create game start message with first player info.
+ * @param {string} firstPlayerId - First player ID.
+ * @returns {Buffer} Game start message.
+ */
 function createGameStartMessage(firstPlayerId) {
     // Create a binary message with both game start and first player info
     const gameStartPacket = [
@@ -100,6 +124,13 @@ function createGameStartMessage(firstPlayerId) {
     return msgpack.encode(gameStartPacket);
 }
 
+/**
+ * Determine first player.
+ * @param {string} roomId - Room ID.
+ * @param {object} state - State object.
+ * @param {function} log - Log function.
+ * @returns {string} First player ID.
+ */
 function determineFirstPlayer(roomId, state, log) {
     const room = state.userRooms.get(roomId);
     if (!room) return null;
@@ -114,7 +145,12 @@ function determineFirstPlayer(roomId, state, log) {
     return firstPlayerId;
 }
 
-// Handle client disconnections
+/**
+ * Handle client disconnections.
+ * @param {string} clientId - Client ID.
+ * @param {object} state - State object.
+ * @param {function} log - Log function.
+ */
 function handleClientDisconnect(clientId, state, log) {
     // Check all rooms for ready states
     for (const [roomId, roomReadyStates] of readyStates.entries()) {
@@ -151,17 +187,22 @@ function handleClientDisconnect(clientId, state, log) {
     }
 }
 
-// Add this function to vinceGameHandler.js
-function handleVinceGameImmune(clientId, binaryMessage, state, log) {
+/**
+ * Handle Hidden game immune.
+ * @param {string} clientId - Client ID.
+ * @param {Buffer} binaryMessage - Binary message.
+ * @param {object} state - State object.
+ * @param {function} log - Log function.
+ */
+function handleHiddenGameImmune(clientId, binaryMessage, state, log) {
     log('Broadcasting immune pieces update via utility', { clientId });
-    // Use the new utility. It will find the room and broadcast.
     broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 
 module.exports = {
-    handleVinceGamePacket,
-    handleVinceGameConfirmStart,
+    handleHiddenGamePacket,
+    handleHiddenGameConfirmStart,
     handleClientDisconnect,
-    handleVinceGameImmune,
+    handleHiddenGameImmune,
     handleExtraTurnMoves
 };

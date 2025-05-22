@@ -19,7 +19,7 @@ const SERVER_CONFIG = {
 
 const PERMANENT_ROOMS = {
     PONG_ROOM: 'pongRoom',
-    VINCE_GAME_LOBBY: 'vinceGameLobby'
+    HIDDEN_GAME_LOBBY: 'hiddenGameLobby'
 };
 
 // 2) Server State
@@ -192,7 +192,7 @@ function initializePermanentRooms() {
     ACTIVE_DATA.userRooms.set(PERMANENT_ROOMS.PONG_ROOM, {
         clients: new Set(),
     });
-    ACTIVE_DATA.userRooms.set(PERMANENT_ROOMS.VINCE_GAME_LOBBY, {
+    ACTIVE_DATA.userRooms.set(PERMANENT_ROOMS.HIDDEN_GAME_LOBBY, {
         clients: new Set(),
     });
 }
