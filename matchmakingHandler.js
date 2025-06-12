@@ -125,7 +125,7 @@ function handleClientDisconnect(clientId, state, log) {
             // Notify other player that opponent disconnected
             const otherPlayer = matchData.players.find(id => id !== clientId);
             if (otherPlayer) {
-                sendServerResponseToClient(otherPlayer, false, state, log, 'Sent opponent disconnect notification');
+                sendServerResponseToClient(otherPlayer, false, PacketType.OPPONENT_DISCONNECTED, state, log);
             }
             
             // Clean up the match

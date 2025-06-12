@@ -66,8 +66,6 @@ function handleRoomJoinPacket(clientId, roomId, state, log)
         success = true;
         log('Joined room successfully', { clientId, roomId });
     }
-
-    sendServerResponseToClient(clientId, success, state, log);
 }
 
 function handleRoomLeavePacket(clientId, roomId, state, log, permanentRoomsConfig = {}) {

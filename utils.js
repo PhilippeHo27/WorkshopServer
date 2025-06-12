@@ -50,13 +50,28 @@ function broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log = co
     broadcastToRoom(clientId, binaryMessage, state, roomData);
 }
 
-function sendServerResponseToClient(clientId, responseData, state, log = console.log) {
+// function sendServerResponseToClient(clientId, responseData, state, log = console.log) {
+//     const clientSocket = state.activeConnections.get(clientId);
+//     if (clientSocket && clientSocket.readyState === WebSocket.OPEN) { 
+//         try {
+//             const packet = [0, PacketType.SERVER_RESPONSE, responseData];
+//             clientSocket.send(msgpack.encode(packet));
+//             log(`Sent server response to ${clientId}`, { responseData });
+//         } catch (error) {
+//             log(`Error sending server response to ${clientId}: ${error.message}`);
+//         }
+//     } else {
+//         log(`Cannot send server response, client ${clientId} not connected`);
+//     }
+// }
+
+function sendServerResponseToClient(clientId, responseData, originalPacketType, state, log = console.log) {
     const clientSocket = state.activeConnections.get(clientId);
     if (clientSocket && clientSocket.readyState === WebSocket.OPEN) { 
         try {
-            const packet = [0, PacketType.SERVER_RESPONSE, responseData];
+            const packet = [0, PacketType.SERVER_RESPONSE, responseData, originalPacketType];
             clientSocket.send(msgpack.encode(packet));
-            log(`Sent server response to ${clientId}`, { responseData });
+            log(`Sent server response to ${clientId}`, { responseData, originalPacketType });
         } catch (error) {
             log(`Error sending server response to ${clientId}: ${error.message}`);
         }
@@ -64,6 +79,7 @@ function sendServerResponseToClient(clientId, responseData, state, log = console
         log(`Cannot send server response, client ${clientId} not connected`);
     }
 }
+
 
 module.exports = {
     broadcastToRoom,
