@@ -1,6 +1,5 @@
-const WebSocket = require('ws');
-const msgpack = require('@msgpack/msgpack');
-const PacketType = require('./packetTypes');
+// server.js
+
 const { sendServerResponseToClient } = require('./utils');
 
 const ROOM_CONFIG = {
@@ -33,7 +32,7 @@ function handleRoomCreatePacket(clientId, roomId, state, log)
         log('Room already exists', { roomId });
     }
     
-    sendServerResponseToClient(clientId, success, state, log, 'Sent room create response');
+    sendServerResponseToClient(clientId, success, state, log);
 }
 
 function handleRoomJoinPacket(clientId, roomId, state, log) 
@@ -68,7 +67,7 @@ function handleRoomJoinPacket(clientId, roomId, state, log)
         log('Joined room successfully', { clientId, roomId });
     }
 
-    sendServerResponseToClient(clientId, success, state, log, 'Sent room join response');
+    sendServerResponseToClient(clientId, success, state, log);
 }
 
 function handleRoomLeavePacket(clientId, roomId, state, log, permanentRoomsConfig = {}) {

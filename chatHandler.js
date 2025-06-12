@@ -10,11 +10,7 @@ function handleChatPacket(clientId, decoded, binaryMessage, state, log) {
         return;
     }
 
-    // Logging specific to chat can remain
     log('Chat message received, preparing to broadcast', { clientId, senderId, text });
-
-    // Use the new utility. It will find the room and broadcast.
-    // clientId is the senderId for broadcasting purposes.
     broadcastOriginalMessageToRoom(clientId, binaryMessage, state, log);
 }
 

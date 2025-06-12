@@ -33,9 +33,8 @@ function storeUserName(clientId, userName, state, log) {
 
 function updateUserNamesToClients(state, log) {
     const userList = Array.from(state.userNames.entries()).map(([id, name]) => 
-        [id, name]  // Array instead of object
+        [id, name]
     );
-    
 
     // Prepare the packet
     const packet = msgpack.encode([

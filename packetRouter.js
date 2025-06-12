@@ -17,6 +17,7 @@ const {
     handleExtraTurnMoves
 } = require('./hiddenGameHandler.js');
 const { handleMatchmakingRequest } = require('./matchmakingHandler.js');
+const { sendServerResponseToClient } = require('./utils');
 
 function routePacket(clientId, message, state, log, decodeMsgPack) {
     if (!Buffer.isBuffer(message)) {
@@ -50,6 +51,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             break;
         case PacketType.USER_INFO:
             storeUserName(clientId, decoded[2], state, log);
+            sendServerResponseToClient(clientId, true, state, log);
             break;
         case PacketType.HIDDEN_GAME:
             handleHiddenGamePacket(clientId, message, state, log);
