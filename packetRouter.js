@@ -42,6 +42,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             break;
         case PacketType.ROOM_JOIN:
             handleRoomJoinPacket(clientId, decoded[2], state, log);
+            sendServerResponseToClient(clientId, true, state, log);
             break;
         case PacketType.ROOM_LEAVE:
             handleRoomLeavePacket(clientId, decoded[2], state, log);
