@@ -42,7 +42,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             break;
         case PacketType.ROOM_JOIN:
             handleRoomJoinPacket(clientId, decoded[2], state, log);
-            //sendServerResponseToClient(clientId, true, state, log);
+            sendServerResponseToClient(clientId, true, state, log);
             break;
         case PacketType.ROOM_LEAVE:
             handleRoomLeavePacket(clientId, decoded[2], state, log);
@@ -52,7 +52,7 @@ function routePacket(clientId, message, state, log, decodeMsgPack) {
             break;
         case PacketType.USER_INFO:
             storeUserName(clientId, decoded[2], state, log);
-            //sendServerResponseToClient(clientId, true, state, log);
+            sendServerResponseToClient(clientId, true, state, log);
             break;
         case PacketType.HIDDEN_GAME:
             handleHiddenGamePacket(clientId, message, state, log);

@@ -17,4 +17,4 @@ jobs:
           script: |
             cd ~/projects/workshop/server
             git pull
-            pm2 restart server
+            pm2 reload server
